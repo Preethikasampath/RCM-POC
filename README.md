@@ -1,1 +1,25 @@
-# RCM-POC
+🏥 Vital Signs — AI Claims Scrubbing & Denial Prediction
+
+An end-to-end healthcare RCM (Revenue Cycle Management) system that predicts claim denials before submission, explains why a claim is at risk, and classifies the likely denial reason — built for the Senior ML Engineer (Claim Scrubbing & Denial Prediction) role at PAIX Services.
+
+Built by an RCM Team Lead (7+ years, AR & denials management) turned ML Engineer — this project is grounded in real payer-edit logic, not generic Kaggle patterns.
+
+🎯 What this system does Capability How Denial risk prediction XGBoost binary classifier — pre-submission features only, no data leakage Denial reason prediction XGBoost multi-class classifier — predicts the likely CARC code (CO-16, CO-45, CO-50, CO-97, CO-109, CO-197, CO-18, CO-29) Rule-based claims scrubbing Deterministic payer-edit checks (missing auth, failed eligibility, duplicate claims, timely filing) run alongside the ML models Explainability SHAP feature attribution on every prediction — required for healthcare compliance/traceability Interactive dashboard Streamlit app — analytics, live claim scorer, pre-submission risk queue, model performance Reporting Downloadable PDF claim reports, Excel export of the risk queue 📊 Results Denial rate: 18.1% (realistic vs. industry ~10–20%) Model 1 (denial prediction): ROC-AUC 0.69, Accuracy 68% Model 2 (CARC reason): 69% accuracy across 8 classes Bayes-optimal ceiling for this dataset: 82.5% accuracy — calculated directly, not assumed (see Methodology below) 🖥️ The app
+
+A dark, glassmorphic "clinical command center" interface — not a default dashboard template.
+
+Analytics — denial rate by payer/specialty/CARC, interactive Plotly charts Claim Scrubber — score a claim live, see a glowing risk gauge, SHAP breakdown, rule-engine findings, and likely CARC reason — plus one-click sample claims and a downloadable PDF report Risk Queue — held-out test claims ranked by denial probability, exportable to Excel Model Performance — both models' real metrics, feature importance, per-class report bash pip install -r requirements.txt streamlit run app.py 🧠 Methodology — an honest note on the data
+
+The base claim structure (15,000 records) is synthetic — no real PHI. What makes it useful is that the denial label wasn't faked or copied from an unrelated column: it was engineered from a weighted composite of real RCM risk factors (timely filing, missing prior auth, NCCI bundling, eligibility, fee-schedule risk, provider denial history), converted to a probability, and sampled — preserving realistic irreducible noise the same way real payer decisions do.
+
+Before trusting the labels, I checked whether the training target actually correlated with any feature — a step most portfolio projects skip. I also calculated the theoretical Bayes-optimal accuracy ceiling for this dataset (82.5%) by reconstructing the true generating probability per claim — proving the model is already within ~1.5 points of the maximum achievable ROC-AUC, and that chasing 90%+ accuracy on this data would be a red flag, not an achievement.
+
+🏗️ Architecture Raw Claims Data │ ▼ Feature Engineering ──────────────┐ │ │ ▼ ▼ Rule-Based Payer Edits Model 1: Denial Prediction (XGBoost) │ ▼ Model 2: CARC Reason (XGBoost, multi-class) │ ▼ SHAP Explainability │ ▼ Claim Scrubber Engine │ ▼ Streamlit Dashboard 📁 Project structure . ├── app.py # Streamlit dashboard (production UI) ├── requirements.txt ├── data/ │ ├── rcm_claims_hard_synthetic.csv │ └── claims_preprocessed_v3.csv ├── models/ │ ├── tuned_xgboost_model.pkl # Model 1 │ ├── carc_prediction_model.pkl # Model 2 │ ├── target_encoder.pkl │ ├── carc_label_encoder.pkl │ └── label_encoders.pkl ├── notebooks/ │ ├── 01_Data_Understanding.ipynb │ ├── 02_Exploratory_Data_Analysis.ipynb │ ├── 03_Data_Preprocessing.ipynb │ ├── 04_Date_Feature_Engineering.ipynb │ ├── 05_Categorical_Encoding.ipynb │ ├── 06_Feature_Selection_Train_Test_Split.ipynb │ ├── 07_Train_Test_Split_and_Baseline_Model.ipynb │ ├── 08_XGBoost_Claim_Denial_Prediction.ipynb │ ├── 09_Handling_Class_Imbalance.ipynb │ ├── 10_Hyperparameter_Tuning.ipynb │ ├── 11_SHAP_Explainability.ipynb │ ├── 12_CARC_Code_Prediction_Multi_Class_XGBoost.ipynb │ └── 13_End_to_End_Pipeline.ipynb └── deployment/ ├── Dockerfile ├── claims-app.service └── DEPLOYMENT.md 🛠️ Tech stack
+
+ML/Data: Python, Pandas, NumPy, Scikit-learn, XGBoost, SHAP App: Streamlit, Plotly Reporting: ReportLab (PDF), OpenPyXL (Excel) Deployment: AWS EC2, Docker, systemd
+
+🚀 Deployment
+
+Deployed to AWS EC2 (Ubuntu 22.04, t3.micro) — see deployment/DEPLOYMENT.md for the full step-by-step (security groups, SSH, systemd service for persistence, optional Docker containerization).
+
+📌 What I'd build next in production EDI X12 837/835 parsing layer for direct payer transaction ingestion HL7/FHIR integration for clinical context Retraining pipeline on real denial outcomes (feedback loop) Model monitoring dashboard tracking prediction accuracy vs. actual adjudication over time 👤 About
